@@ -1,8 +1,44 @@
 ![CI logo](https://codeinstitute.s3.amazonaws.com/fullstack/ci_logo_small.png)
 
-Welcome USER_NAME,
+Welcome Mike Green,
 
 This is the Code Institute student template for Gitpod. We have preinstalled all of the tools you need to get started. You can safely delete this README.md file, or change it for your own project. Please do read it at least once, though! It contains some important information about Gitpod and the extensions we use.
+
+## Install django
+```pip3 install django```
+
+> Installing collected packages: sqlparse, pytz, asgiref, django
+> Successfully installed asgiref-3.3.1 django-3.1.5 pytz-2020.5 sqlparse-0.4.1
+
+```django-admin startproject msp4_sandbox```
+
+From [pwd] /workspace/MSP4_sandbox:
+
+```cd msp4_sandbox```
+
+ 
+```python3 manage.py runserver```
+
+Port #8000 made public.
+
+>You have 18 unapplied migration(s). Your project may not work properly until you apply the migrations for app(s): admin, auth, contenttypes, sessions.
+>Run 'python manage.py migrate' to apply them.
+
+```python3 manage.py migrate```
+
+### Apps
+
+```python3 manage.py startapp msp4```
+
+Creates a subdirectory : msp4.
+With python files:
+- admin.py
+- apps.py
+- models.py
+- tests.py
+- views.py
+
+
 
 ## Gitpod Reminders
 
