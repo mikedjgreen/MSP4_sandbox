@@ -140,12 +140,161 @@ Migrations are Django's way of converting python code into database operations.
 
 ``` python3 manage.py migrate [--plan] ```
 
-``` python3 manage.py createsuperuser ``` prompts for 1) username; 2) email; 3) password/confirm password.
+``` python3 manage.py createsuperuser ``` 
+- prompts for 1) username; 2) email; 3) password/confirm password.
+
+- ![SuperUser](/msp4_sandbox/static/docs/Superuser.jpg)
+
 
 ### Models
+Now that the database sqlite3 has been initialised for the project, can model some objects for it to hold.
+
+#### models.py
+
+```
+from django.db import models
 
 
+class Item(models.Model):
+    name = models.CharField(max_length=50, null=False, blank=False)
+    done = models.BooleanField(null=False, blank=False, default=False)
+```
 
+This model now needs to be implemented on the database.
+```
+gitpod /workspace/MSP4_sandbox $ python3 manage.py makemigrations --dry-run
+Migrations for 'todo':
+  todo/migrations/0001_initial.py
+    - Create model Item
+```
+
+Now for real:
+```python3 manage.py makemigrations```
+
+This creates an sql file that will create the Items table within db.sqlite3.
+
+[/workspace/MSP4_sandbox/todo/migrations/0001_initial.py]
+
+```
+    operations = [
+        migrations.CreateModel(
+            name='Item',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=50)),
+                ('done', models.BooleanField(default=False)),
+            ],
+        ),
+    ]
+```
+
+Before this is enacted, just check that this is what was intended.
+
+```
+python3 manage.py migrate --plan
+Planned operations:
+todo.0001_initial
+    Create model Item
+```
+#### run the migration
+```
+python3 manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions, todo
+Running migrations:
+  Applying todo.0001_initial... OK
+```
+
+#### Need to register model to see
+
+[todo] apps admin.py file:
+
+```
+from django.contrib import admin
+from .models import Item
+
+# Register your models here.
+admin.site.register(Item)
+```
+
+Run the server now:
+```python3 manage.py runserver```
+
+The admin page will now show items:
+
+- ![admin_items](msp4_sandbox/static/docs/admin_items.jpg)
+
+From this page you can add items to the database items object.
+
+- ![Items added](msp4_sandbox/static/docs/items_added.jpg)
+
+The item names are not very meaningful.
+
+#### models.py
+
+```
+class Item(models.Model):
+    name = models.CharField(max_length=50, null=False, blank=False)
+    done = models.BooleanField(null=False, blank=False, default=False)
+
+
+    def __str__(self):
+        return self.name
+```
+Refresh admin page will give:
+
+- ![Item names](msp4_sandbox/static/docs/item_names.jpg)
+
+### Creating data: Crud
+
+#### Rendering data on the web pages from the database: cRud
+
+views.py
+
+```
+from django.shortcuts import render, HttpResponse
+from .models import Item
+
+
+# Create your views here.
+def say_hello(request):
+    return HttpResponse("Hello!")
+
+
+def get_todo_list(request):
+    items = Item.objects.all()
+    context = {
+        'items': items
+    }
+    return render(request, "todo/todo_list.html", context)
+```
+
+#### Now need the template to display the items: cRud
+
+todo_list.html
+
+```
+<body>
+    <h1>Things I need to do</h1>
+    <table>
+        <tr>
+            <td>Name</td>
+            <td>Done</td>
+        </tr>
+        {% for item in items %}
+            <tr>
+                {% if item.done %}
+                    <td><strike> {{ item.name }} </strike></td>
+                {% else %}
+                    <td> {{ item.name }} </td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr><td>Nothing to do.</td></tr>
+        {% endfor %}
+    </table>
+</body>
+```
 
 ## Gitpod Reminders
 
