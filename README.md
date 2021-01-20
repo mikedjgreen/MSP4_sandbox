@@ -1,3 +1,32 @@
+- [MSP4 sand box](#msp4-sand-box)
+  * [Install [django](https://www.djangoproject.com/)](#install--django--https---wwwdjangoprojectcom--)
+    + [Apps](#apps)
+      - [views.py](#viewspy)
+      - [urls.py](#urlspy)
+    + [Templates](#templates)
+      - [views.py](#viewspy-1)
+      - [urls.py](#urlspy-1)
+      - [settings.py](#settingspy)
+    + [Migrations and admin](#migrations-and-admin)
+    + [Models](#models)
+      - [models.py](#modelspy)
+      - [run the migration](#run-the-migration)
+      - [Need to register model to see](#need-to-register-model-to-see)
+      - [models.py](#modelspy-1)
+    + [Creating data: Crud](#creating-data--crud)
+      - [Rendering data on the web pages from the database: cRud](#rendering-data-on-the-web-pages-from-the-database--crud)
+      - [Now need the template to display the items: cRud](#now-need-the-template-to-display-the-items--crud)
+      - [Creating an item: Crud](#creating-an-item--crud)
+    + [The problem with forms is validation.](#the-problem-with-forms-is-validation)
+    + [Editing data: crUd](#editing-data--crud)
+      - [Toggle the done status](#toggle-the-done-status)
+    + [Delete an item: cruD](#delete-an-item--crud)
+  * [Django - see also.](#django---see-also)
+  * [Gitpod Reminders](#gitpod-reminders)
+
+<small><i>[TOC](http://ecotrust-canada.github.io/markdown-toc/)</i></small>
+
+
 # MSP4 sand box
 
 ## Install [django](https://www.djangoproject.com/)
@@ -439,9 +468,169 @@ We can use these to format the form.
 ```
 
 
-### Editing data: cRud
+### Editing data: crUd
+
+Need a button next to each item to take us to the editing page for that item.
+1) 'todo_list.html' needs edit buttons adding:
+```
+        <tr>
+            {% if item.done %}
+                <td><strike> {{ item.name }} </strike></td>
+            {% else %}
+                <td> {{ item.name }} </td>
+            {% endif %}
+            <td>
+                <a href="/edit/{{ item.id }}">
+                    <button>Edit</button>
+                </a>
+            </td>
+        </tr>
+```
+2) views.py needs an edit view:
+This is GET only.
+
+```
+def edit_item(request, item_id):
+    return render(request, "todo/edit_item.html")
+```
 
 
+3) Create edit_item template
+[Just duplicate and rename add_item.html]
+Then change references 'add' to 'edit'.
+
+```
+    <h1>Edit a todo item</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div>
+            <p>
+                <button type="submit">Edit an item</button>
+            </p>
+        </div>
+    </form>
+```
+
+4) urls.py
+``` from todo.views import say_hello, get_todo_list, add_item, edit_item ```
+
+```
+    path("add", add_item, name="add"),
+    path("edit/<item_id>", edit_item, name="edit"),
+```
+
+5) Back to views.py to add edit form
+
+```from django.shortcuts import render, HttpResponse, redirect, get_object_or_404```
+
+```
+def edit_item(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    form = ItemForm(instance=item)
+    context = {
+        'form': form
+    }
+    return render(request, "todo/edit_item.html", context)
+```
+
+6) Now need a POST handler on the views.py
+
+```
+def edit_item(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    if request.method == "POST":
+        form = ItemForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            return redirect("get_todo_list")
+    form = ItemForm(instance=item)
+```
+
+#### Toggle the done status
+
+1) todo_list.html template
+
+```
+            <td>
+                <a href="/edit/{{ item.id }}">
+                    <button>Edit</button>
+                </a>
+            </td>
+            <td>
+                <a href="/toggle/{{ item.id }}">
+                    <button>Toggle</button>
+                </a>
+            </td>
+```
+2) urls.py
+
+This is getting a bit verbose:
+```from todo.views import say_hello, get_todo_list, add_item, edit_item, toggle_item```
+
+Toggle is almost identical to edit:
+```
+path("edit/<item_id>", edit_item, name="edit"),
+    path("toggle/<item_id>", toggle_item, name="toggle"),
+```
+
+Maybe import 'views' instead of list of each view.
+Then specify views.toggle_item.
+
+```from todo.views import views```
+
+
+```
+path("edit/<item_id>", edit_item, name="edit"),
+    path("toggle/<item_id>", views.toggle_item, name="toggle"),
+```
+
+
+3) views.py
+
+```
+def toggle_item(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    item.done = not item.done
+    item.save()
+    return redirect("get_todo_list")
+
+```
+
+
+### Delete an item: cruD
+
+1) views.py
+
+```
+def delete_item(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    item.delete()
+    return redirect("get_todo_list")
+```
+
+2) urls.py
+
+```
+    path("toggle/<item_id>", toggle_item, name="toggle"),
+    path("delete/<item_id>", delete_item, name="delete"),
+```
+
+3) todo_list.html
+
+```
+            <td>
+                <a href="/toggle/{{ item.id }}">
+                    <button>Toggle</button>
+                </a>
+            </td>
+            <td>
+                <a href="/delete/{{ item.id }}">
+                    <button>Delete</button>
+                </a>
+            </td>
+        </tr>
+```
 
 ## Django - see also.
 
