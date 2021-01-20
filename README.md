@@ -1,6 +1,6 @@
 # MSP4 sand box
 
-## Install django
+## Install [django](https://www.djangoproject.com/)
 ```pip3 install django```
 
 > Installing collected packages: sqlparse, pytz, asgiref, django
@@ -295,6 +295,158 @@ todo_list.html
     </table>
 </body>
 ```
+
+#### Creating an item: Crud
+
+Use todo_list.html to make add_item.html.
+
+1. Need a link to this within todo_list.html
+```
+    </table>
+    <a href="/add">Add an item</a>
+</body>
+```
+2. Need a view of this add_task in views.py.
+```
+def add_item(request):
+    return render(request, "todo/add_item.html")
+```
+3. Need a url [urls.py] to access this link.
+```
+from todo.views import say_hello, get_todo_list, add_item
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('hello/', say_hello, name="Hello"),
+    path("", get_todo_list, name="get_todo_list"),
+    path("add", add_item, name="add")
+```
+
+4. Check that link works.
+``` python3 manage.py runserver ```
+
+5. Now need a form to enable users to add an item.
+In add_item.html:
+```
+    <form method="POST" action="add">
+        <div>
+            <p>
+                <label for="id_name">Name:</label>    
+                <input type="text" id="id_name" name="item_name" />
+            </p>
+        </div>
+        <div>
+            <p>
+                <label for="id_done">Done:</label>    
+                <input type="checkbox" id="id_done" name="item_done" />               
+            </p>
+        </div>
+        <div>
+            <p>
+                <button type="submit">Add an item</button>
+            </p>
+        </div>
+    </form>
+```
+
+Attempting to use the form as is gives you a 403 error:
+
+- ![csrf 403](/msp4_sandbox/static/docs/csrf_403.jpg)
+
+6. Cross-site request forgery token (CSRF)
+
+Add a token to the form when it posts.
+```
+    <form method="POST" action="add">
+        {% csrf_token %}
+        <div>
+```
+
+7. Need to add item to database.
+[views.py]
+
+To ensure redirect to todo_list works:
+```from django.shortcuts import render, HttpResponse, redirect```
+
+Now to populate Items from form input.
+```
+def add_item(request):
+    if request.method == "POST":
+        name = request.POST.get("item_name")
+        done = 'done' in request.POST
+        Item.objects.create(name=name, done=done)
+        return redirect("get_todo_list")
+    return render(request, "todo/add_item.html")
+```
+
+### The problem with forms is validation.
+
+Django provides a method of generating forms from the model, with built-in validation.
+
+1)  Create a file in the todo app directory called forms.py.
+
+```
+from django import forms
+from .models import Item
+```
+```
+class ItemForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = ['name', 'done']
+```
+
+2) In views.py make sure we have the template available
+
+```
+from .models import Item
+from .forms import ItemForm
+```
+
+3) In the add_item.html we can strip out the manual form fields...
+
+```
+    <form method="POST" action="add">
+        {% csrf_token %}
+        {{ form }}
+        <div>
+            <p>
+                <button type="submit">Add an item</button>
+            </p>
+        </div>
+    </form>
+```
+4) Go back to views.py to amend POST method to pick up template fields.
+
+```
+def add_item(request):
+    if request.method == "POST":
+        form = ItemForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("get_todo_list")
+    form = ItemForm()
+```
+5) Django forms have some built-in methods.
+We can use these to format the form.
+
+```
+<form method="POST" action="add">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div>
+```
+
+
+### Editing data: cRud
+
+
+
+## Django - see also.
+
+- [Create your first app](https://docs.djangoproject.com/en/3.1/intro/tutorial01/)
+
 
 ## Gitpod Reminders
 
