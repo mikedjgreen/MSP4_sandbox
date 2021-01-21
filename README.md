@@ -1,5 +1,5 @@
 - [MSP4 sand box](#msp4-sand-box)
-  * [Install [django](https://www.djangoproject.com/)](#install--django--https---wwwdjangoprojectcom--)
+  * [Install Django](#install-django)
     + [Apps](#apps)
       - [views.py](#viewspy)
       - [urls.py](#urlspy)
@@ -21,6 +21,8 @@
     + [Editing data: crUd](#editing-data--crud)
       - [Toggle the done status](#toggle-the-done-status)
     + [Delete an item: cruD](#delete-an-item--crud)
+  * [Testing Django](#testing-django)
+    + [Testing forms](#testing-forms)
   * [Django - see also.](#django---see-also)
   * [Gitpod Reminders](#gitpod-reminders)
 
@@ -29,7 +31,9 @@
 
 # MSP4 sand box
 
-## Install [django](https://www.djangoproject.com/)
+## Install Django  
+[Django](https://www.djangoproject.com/)
+
 ```pip3 install django```
 
 > Installing collected packages: sqlparse, pytz, asgiref, django
@@ -598,6 +602,9 @@ def toggle_item(request, item_id):
 ```
 
 
+
+
+
 ### Delete an item: cruD
 
 1) views.py
@@ -632,10 +639,201 @@ def delete_item(request, item_id):
         </tr>
 ```
 
+## Testing Django
+
+Django has a testing framework to automate tests.
+
+When creating a project, Django creates a 'tests.py' file:
+```from django.test import TestCase```
+
+Create an assertion that should fail.
+```
+# Create your tests here.
+class TestDjango(TestCase):
+
+    def test_this_thing_works(self):
+        self.assertEqual(1,0)
+```
+
+```$ python3 manage.py test```
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**F**
+======================================================================
+FAIL: test_this_thing_works (todo.tests.TestDjango)
+----------------------------------------------------------------------
+>Traceback (most recent call last):
+  File "/workspace/MSP4_sandbox/todo/tests.py", line 7, in test_this_thing_works
+    self.assertEqual(1,0)
+AssertionError: 1 != 0
+
+----------------------------------------------------------------------
+>Ran 1 test in 0.001s
+
+>FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+### Testing forms
+
+Duplicate tests.py and rename to test_forms.py.
+
+```
+from django.test import TestCase
+from .forms import ItemForm
+
+
+# Create your tests here.
+class TestItemForm(TestCase):
+
+    def test_item_name_is_required(self):
+        form = ItemForm({'name': ''})
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors.keys())
+        self.assertEqual(form.errors['name'][0], 'This field is required.')
+```
+
+1) Now run the test for test_forms only.
+
+```python3 manage.py test todo.test_forms```
+
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**.**
+----------------------------------------------------------------------
+>Ran 1 test in 0.001s
+
+>OK
+Destroying test database for alias 'default'...
+
+2) Can run a test for specific class of tests:
+```python3 manage.py test todo.test_forms.TestItemForm```
+
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**...**
+----------------------------------------------------------------------
+>Ran 3 tests in 0.003s
+
+>OK
+Destroying test database for alias 'default'...
+
+3) Can run a test for specific test:
+```python3 manage.py test todo.test_forms.TestItemForm.test_fields_are_explicit_in_metaclass```
+
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**.**
+----------------------------------------------------------------------
+>Ran 1 test in 0.001s
+
+>OK
+Destroying test database for alias 'default'...
+
+### Testing views
+
+Duplicate tests.py and rename to test_views.py.
+
+```
+from django.test import TestCase
+from .models import Item
+
+
+# Create your tests here.
+class TestViews(TestCase):
+
+    def test_get_to_list(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "todo/todo_list.html")
+
+```
+
+
+```python3 manage.py test todo.test_views```
+
+### Testing models
+
+```
+from django.test import TestCase
+from .models import Item
+
+
+# Create your tests here.
+class TestModels(TestCase):
+
+    def test_done_defaults_to_false(self):
+        item = Item.objects.create(name='Test todo item')
+        self.assertFalse(item.done)
+```
+
+Now to test models only:
+
+```python3 manage.py test todo.test_models```
+
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**.**
+----------------------------------------------------------------------
+>Ran 1 test in 0.004s
+
+>OK
+Destroying test database for alias 'default'...
+
+
+#### Coverage
+
+```pip3 install coverage```
+
+
+To run this:
+```coverage run --source=todo manage.py test```
+
+>Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+**.....F**
+======================================================================
+FAIL: test_this_thing_works (todo.tests.TestDjango)
+----------------------------------------------------------------------
+>Traceback (most recent call last):
+  File "/workspace/MSP4_sandbox/todo/tests.py", line 8, in test_this_thing_works
+    self.assertEqual(1, 0)
+AssertionError: 1 != 0
+
+----------------------------------------------------------------------
+>Ran 6 tests in 0.025s
+
+>FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+
+``` coverage report```
+
+
+Name                              |Stmts  | Miss | Cover
+----------------------------------|--------|-----|------
+todo/__init__.py                  |    0   |   0  | 100%
+todo/admin.py                     |    3   |   0  | 100%
+todo/apps.py                      |    3    |  3  |   0%
+todo/forms.py                       |  6    |  0  | 100%
+todo/migrations/0001_initial.py     |  5    |  0  | 100%
+todo/migrations/__init__.py         |  0    |  0  | 100%
+todo/models.py                      |  6    |  1  |  83%
+todo/test_forms.py                  | 14    |  0  | 100%
+todo/test_models.py                 |  6    |  0  | 100%
+todo/test_views.py                  |  7    |  0  | 100%
+todo/tests.py                       |  4    |  0  | 100%
+todo/views.py                       | 37    | 25  |  32%
+------------------------------------|--------|-----|----
+TOTAL                               | 91    | 29   | 68%
+
+## Heroku Setup
+
+
 ## Django - see also.
 
 - [Create your first app](https://docs.djangoproject.com/en/3.1/intro/tutorial01/)
 
+- [Django testing](https://docs.djangoproject.com/en/3.1/topics/testing/overview/)
 
 ## Gitpod Reminders
 
