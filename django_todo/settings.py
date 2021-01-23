@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
+
+development = os.environ.get('DEVELOPMENT', False)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'c&y+3_8gbg0x*6l7&x@=r4b96b1r_=5fof@(b2xu&ie+j_k)6f'
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = development
 
-ALLOWED_HOSTS = []
+if development:
+    ALLOWED_HOSTS = ['localhost']
+else:
+    ALLOWED_HOSTS = ['msp4-sandbox.herokuapp.com/']
 
 
 # Application definition
@@ -74,13 +81,17 @@ WSGI_APPLICATION = 'django_todo.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if development:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
+else:
+    DATABASES = {
+        'default': dj_database_url.parse('postgres://ptuecofeqongvg:5855bcfd721949633570b275d81c834714d1754c30dfaca888a8815c73ff277c@ec2-54-73-253-140.eu-west-1.compute.amazonaws.com:5432/d3iue4audrius5')
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators

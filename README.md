@@ -828,6 +828,258 @@ TOTAL                               | 91    | 29   | 68%
 
 ## Heroku Setup
 
+### Heroku CLI (Command Line Interface)
+
+This prompts for email login and password.
+```heroku login -i  ```  
+
+### Preparing for Heroku deployment of app.
+
+db.sqlite3 has been the local database used for development and tests, but cannot be used for Heroku.
+Heroku uses an ephemral filesystem. 
+Any file, such as db.sqlite3, would be wiped each time the Heroku session ends.
+
+An add-on for Heroku is a separate, permanent relational database called [Postgres](https://www.postgresql.org/)
+To use Postgres we need to install a package:
+
+```pip3 install psycopg2-binary```
+
+>Collecting psycopg2-binary
+  Downloading psycopg2_binary-2.8.6-cp38-cp38-manylinux1_x86_64.whl (3.0 MB)
+     |████████████████████████████████| 3.0 MB 8.3 MB/s 
+Installing collected packages: psycopg2-binary
+Successfully installed psycopg2-binary-2.8.6
+
+Heroku also needs a webserver, other than our development web server, called [green unicorn](https://gunicorn.org/).
+This needs to be installed:
+
+```pip3 install gunicorn```
+
+
+>Collecting gunicorn
+  Downloading gunicorn-20.0.4-py2.py3-none-any.whl (77 kB)
+     |████████████████████████████████| 77 kB 6.0 MB/s 
+Requirement already satisfied: setuptools>=3.0 in /home/gitpod/.pyenv/versions/3.8.7/lib/python3.8/site-packages (from gunicorn) (51.1.2)
+Installing collected packages: gunicorn
+Successfully installed gunicorn-20.0.4
+
+
+
+#### requirements.txt
+
+Heroku needs to be told what software it requires to fire up.
+
+```pip3 freeze --local > requirements.txt```
+
+>asgiref==3.3.1
+coverage==5.3.1
+Django==3.1.5
+gunicorn==20.0.4
+psycopg2-binary==2.8.6
+pytz==2020.5
+sqlparse==0.4.1
+
+### Set up an Heroku app.
+
+Ensure logged into Heroku.
+
+```heroku apps:create msp4-sandbox --region eu```
+
+App = msp4-sandbox.
+
+```heroku apps```
+
+> Warning: heroku update available from 7.47.7 to 7.47.10.
+=== m.d.j.green@ntlworld.com Apps
+msp4-sandbox (eu)
+
+### git
+
+```git remote -v```
+
+At the moment this shows our local git repository.
+
+>origin  https://github.com/mikedjgreen/MSP4_sandbox.git (fetch)
+>origin  https://github.com/mikedjgreen/MSP4_sandbox.git (push)
+
+
+### Set up Heroku database
+
+To use [Postgres](https://www.postgresql.org/).
+
+#### Create the Postgres add on.
+
+Using the gui.
+
+- ![Postgres Add On](/msp4_sandbox/static/docs/Postgres-add-on.jpg).
+
+
+
+- ![Postgres config](/msp4_sandbox/static/docs/Postgres-config-vars.jpg)
+
+```heroku addons```
+
+>Owning App    Add-on                    Plan                         Price  State  
+────────────  ────────────────────────  ───────────────────────────  ─────  ───────
+msp4-sandbox  postgresql-tapered-40106  **heroku-postgresql:hobby-dev**  free   created
+
+For My-SQL instead of postgres addon use 'clearDB'.
+
+
+#### Set app to connect to database.
+
+```pip3 install dj-database-url```
+
+>Downloading dj_database_url-0.5.0-py2.py3-none-any.whl (5.5 kB)
+Installing collected packages: dj-database-url
+Successfully installed dj-database-url-0.5.0
+
+
+Inform Heroku that it has to install this also.
+
+```pip3 freeze --local > requirements.txt```
+
+>asgiref==3.3.1
+coverage==5.3.1
+**dj-database-url==0.5.0**
+Django==3.1.5
+gunicorn==20.0.4
+psycopg2-binary==2.8.6
+pytz==2020.5
+sqlparse==0.4.1
+
+```heroku config --app msp4-sandbox```
+
+>=== msp4-sandbox Config Vars
+DATABASE_URL: **postgres://ptuecofeqongvg:5855bcfd721949633570b275d81c834714d1754c30dfaca888a8815c73ff277c@ec2-54-73-253-140.eu-west-1.compute.amazonaws.com:5432/d3iue4audrius5**
+
+settings.py
+
+Need to import the dj_database_url for the settings to recognise it.
+
+```from pathlib import Path```
+
+```import os```
+
+```import dj_database_url```
+
+
+- copy and paste database_url from config vars:
+>DATABASES = {
+    'default': dj_database_url.parse('postgres://ptuecofeqongvg:5855bcfd721949633570b275d81c834714d1754c30dfaca888a8815c73ff277c@ec2-54-73-253-140.eu-west-1.compute.amazonaws.com:5432/d3iue4audrius5')
+ }
+
+**This heroku database will not contain the models and user information we have developed in db.sqlite3.**
+
+```python3 manage.py migrate```
+
+????
+>Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions, todo
+Running migrations:
+  No migrations to apply.
+
+
+```heroku config:set DISABLE_COLLECTSTATIC=1 --app msp4-sandbox```
+
+>Setting DISABLE_COLLECTSTATIC and restarting ⬢ msp4-sandbox... done, v5
+DISABLE_COLLECTSTATIC: 1
+
+#### Heroku needs to be told of a webserver
+
+New file : 
+
+Procfile
+
+```web: gunicorn django_todo.wsgi:application```
+
+#### Allowed hosts
+
+settings.py
+
+```ALLOWED_HOSTS = ['https://msp4-sandbox.herokuapp.com/']```
+
+
+### Development environment
+
+Local environment we want to use db.sqlite3.
+
+In remote, production environment we want to use Postgres.
+
+Also we want debug on in development, but certainly not in production.
+
+settings.py
+
+``` development = os.environ.get('DEVELOPMENT', False) ```
+
+``` # SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = development 
+```
+
+If there is an error in Heroku (Production) we won't expose source code with debug mode on.
+
+So now we have a switch, in development we can use db.sqlite3, and in production we can use Postgres.
+
+
+```
+if development:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.parse('postgres://ptuecofeqongvg:5855bcfd721949633570b275d81c834714d1754c30dfaca888a8815c73ff277c@ec2-54-73-253-140.eu-west-1.compute.amazonaws.com:5432/d3iue4audrius5')
+    }
+```
+
+
+To get this to work we need to set the environment variable 'DEVELOPMENT' to True in the development account settings within GitPod.
+
+
+- ![DEVELOPMENT VARIABLE](/msp4_sandbox/static/docs/DEVELOPMENT_var.jpg)
+
+
+#### ALLOWED_HOSTS, again
+
+```
+if development:
+    ALLOWED_HOSTS = ['localhost']
+else:
+    ALLOWED_HOSTS = ['msp4-sandbox.herokuapp.com/']
+```
+
+### SECRET_KEY
+
+When pushing to GitHub and Heroku, we stored the SECRET_KEY (of the time) for all to see.
+
+Firstly ensure that any future secret key cannot be read within source ...
+
+settings.py
+```
+SECRET_KEY = os.environ.get('SECRET_KEY', 'c&y+3_8gbg0x*6l7&x@=r4b96b1r_=5fof@(b2xu&ie+j_k)6f')
+becomes...
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+```
+
+
+Then get a new secret key from an online [generator](https://miniwebtool.com/django-secret-key-generator/).
+
+Copy and paste this to an env var: ![environmental variable](/msp4_sandbox/static/docs/SECRET_KEY_var.jpg)
+
+```python3 manage.py runserver```
+
+Need another secret key for production (Heroku).
+
+Copy a generated secret key.
+
+Login to Heroku account and go to settings and expose environmental variables.
+
+- ![SECRET_KEY for HEROKU](/msp4_sandbox/static/docs/SECRET_KEY_Heroku.jpg)
+
+Paste the copied key into the variable.
 
 ## Django - see also.
 
